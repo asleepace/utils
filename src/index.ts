@@ -1,1 +1,1 @@
-export { query } from '@/sql/query'
+export { sql } from './sql'

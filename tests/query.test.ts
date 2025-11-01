@@ -1,9 +1,9 @@
 import { describe, test, expect } from "bun:test";
-import { query } from '@/sql/query'
+import { statement } from '@/sql/query'
 
 describe("query", () => {
   test("basic placeholder replacement", () => {
-    const sql = query<{ table: string; userId: number }>(
+    const sql = statement<{ table: string; userId: number }>(
       "SELECT * FROM $table WHERE userId = $userId"
     );
     const result = sql.prepare({ table: "users", userId: 123 });
@@ -13,7 +13,7 @@ describe("query", () => {
   });
 
   test("duplicate placeholders use same index", () => {
-    const sql = query<{ userId: number }>(
+    const sql = statement<{ userId: number }>(
       "SELECT * FROM users WHERE userId = $userId OR createdBy = $userId"
     );
     const result = sql.prepare({ userId: 123 });
@@ -25,7 +25,7 @@ describe("query", () => {
   });
 
   test("multiple unique placeholders", () => {
-    const sql = query<{ table: string; status: string; limit: number }>(
+    const sql = statement<{ table: string; status: string; limit: number }>(
       "SELECT * FROM $table WHERE status = $status LIMIT $limit"
     );
     const result = sql.prepare({ table: "orders", status: "pending", limit: 10 });
@@ -35,7 +35,7 @@ describe("query", () => {
   });
 
   test("handles null values", () => {
-    const sql = query<{ name: string | null }>(
+    const sql = statement<{ name: string | null }>(
       "UPDATE users SET name = $name"
     );
     const result = sql.prepare({ name: null });
@@ -45,7 +45,7 @@ describe("query", () => {
   });
 
   test("handles undefined values", () => {
-    const sql = query<{ name: string | undefined }>(
+    const sql = statement<{ name: string | undefined }>(
       "UPDATE users SET name = $name"
     );
     const result = sql.prepare({ name: undefined });
@@ -55,7 +55,7 @@ describe("query", () => {
   });
 
   test("throws error for missing placeholders", () => {
-    const sql = query<{ table: string; userId: number }>(
+    const sql = statement<{ table: string; userId: number }>(
       "SELECT * FROM $table WHERE userId = $userId"
     );
 
@@ -65,7 +65,7 @@ describe("query", () => {
   });
 
   test("throws error for multiple missing placeholders", () => {
-    const sql = query<{ table: string; userId: number; status: string }>(
+    const sql = statement<{ table: string; userId: number; status: string }>(
       "SELECT * FROM $table WHERE userId = $userId AND status = $status"
     );
 
@@ -75,7 +75,7 @@ describe("query", () => {
   });
 
   test("handles query with no placeholders", () => {
-    const sql = query<{}>("SELECT * FROM users");
+    const sql = statement<{}>("SELECT * FROM users");
     const result = sql.prepare({});
 
     expect(result.query).toBe("SELECT * FROM users");
@@ -83,7 +83,7 @@ describe("query", () => {
   });
 
   test("handles various data types", () => {
-    const sql = query<{
+    const sql = statement<{
       str: string;
       num: number;
       bool: boolean;
@@ -103,7 +103,7 @@ describe("query", () => {
   });
 
   test("preserves parameter order", () => {
-    const sql = query<{ a: number; b: number; c: number }>(
+    const sql = statement<{ a: number; b: number; c: number }>(
       "SELECT $c, $a, $b"
     );
     const result = sql.prepare({ a: 1, b: 2, c: 3 });

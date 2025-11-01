@@ -1,15 +1,22 @@
-# utils
+# Utils
 
-To install dependencies:
+Assorted collection of useful and lightweight JS/TS utilities.
 
-```bash
-bun install
+## Table of Content
+
+- [sql](#sql):
+
+
+## SQL
+
+### Query
+
+Shorthand for creating prepared statements with SQL
+
+```ts
+import { statement } from '@asleepace/utils/sql'
+
+const sql = statement('SELECT * FROM $table WHERE id = $userId')
+
+const { query, params } = sql.prepare({ table: 'users', userId: 123 })
 ```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.0. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
