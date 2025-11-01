@@ -19,6 +19,15 @@ export namespace e {
       this.scoped.set(scopeName, scope)
     }
 
+    get(options: {
+      scope?: string | undefined
+      name: string | number
+    }): typeof Exception | undefined {
+      const scope = options.scope ?? 'global'
+      const maybe = this.scoped.get(scope)?.get(String(options.name))
+      return maybe
+    }
+
     scopes() {
       return Object.fromEntries(this.scoped.entries())
     }
@@ -47,6 +56,7 @@ export namespace e {
     static throw(...args: any[]): never {
       throw new this(...args)
     }
+
     public scope?: string
     public code: number = 0
     constructor(...args: any[]) {
@@ -59,21 +69,11 @@ export namespace e {
   }
 
   /**
-   * Dynamic type for creating a tuple of N size of error used to produce
-   * a type of an Exception array which is never `undefined` when using
-   * destructing.
-   */
-  export type ErrTuple<
-    Count extends number = 100,
-    T extends any[] = [typeof Exception]
-  > = T['length'] extends Count ? T : ErrTuple<Count, [...T, typeof Exception]>
-
-  /**
    *
    * @param scope
    * @returns
    */
-  export function defs(options: { scope?: string; range?: number } = {}) {
+  export function num(options: { scope?: string; range?: number } = {}) {
     return new Proxy([], {
       get(target, p) {
         // Handle array length property
@@ -90,28 +90,32 @@ export namespace e {
         const range = options.range ?? 0
         const code = range + Number(p)
 
-        console.log({ p })
+        const item = registry.get({ scope: options.scope, name: p })
+        if (item) return item
 
         const definition = class extends Exception {
-          static get meta() {
-            return new Proxy(this, {
-              get(target, p, receiver) {
-                console.log(target, p, receiver)
-              },
-            })
-          }
-
+          /**
+           * Executes the callback if the passed parameter is an instance of
+           * the error definition.
+           */
           static override match<T>(
             e: unknown,
             callback?: (err: InstanceType<typeof definition>) => T
           ): T | void {
             if (e instanceof definition) return callback?.(e as any)
           }
+          /**
+           * Type-guard which checks if item is an instanceof this error
+           * class.
+           */
           static override is(
             obj: unknown
           ): obj is InstanceType<typeof definition> {
             return obj instanceof definition
           }
+          /**
+           * Shorthand for creating and throwing new errors.
+           */
           static override throw(...args: any[]): never {
             throw new this(...args)
           }
@@ -164,23 +168,30 @@ export namespace e {
         registry.set(p.toString(), definition, options.scope)
         return definition
       },
-    }) as unknown as ErrTuple &
-      Record<string, typeof Exception> & { scoped: (typeof Exception)[] } & {
-        [key: string]: typeof Exception
-      }
+    }) as unknown as {
+      [key: string]: typeof Exception
+      [idx: number]: typeof Exception
+    }
   }
 }
 
 const {
-  NormalError,
-  0: MissingExample,
-  1: InvalidParams,
-  2: UserError,
-  3: InvalidPerson,
-  4: NextPerson,
-} = e.defs({ range: 100 })
+  InvalidParams,
+  InvalidRequest,
+  NotAuthorized,
+  NotFound,
+  MissingExample,
+  UserError,
+} = e.num()
 
-console.log(NormalError.meta)
+const {
+  InvalidParams,
+  InvalidRequest,
+  NotAuthorized,
+  NotFound,
+  MissingExample,
+  UserError,
+} = e.num()
 
 function example1() {
   try {
@@ -191,6 +202,8 @@ function example1() {
     }
   }
 }
+
+console.log(InvalidParams, InvalidRequest, NotAuthorized, NotFound)
 
 function example2() {
   try {
@@ -215,15 +228,15 @@ function example3() {
 
 function example4() {
   try {
-    console.log({ meta: UserError.meta.thing })
+    console.log({ meta: UserError })
     UserError.throw('asdasd')
   } catch (err) {
     UserError.match(err, (e) => e.debug())
   }
 }
 
-// console.log(e.registry)
-// example1()
-// example2()
-// example3()
-// example4()
+console.log(e.registry)
+example1()
+example2()
+example3()
+example4()
